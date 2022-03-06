@@ -16,8 +16,8 @@ type Connection struct {
 	grpcConn *grpc.ClientConn
 }
 
-func NewConnection() (*Connection, error) {
-	grpcConn, err := grpc.Dial("104.248.92.191:9090",grpc.WithTransportCredentials(insecure.NewCredentials()))
+func NewConnection(host, port string) (*Connection, error) {
+	grpcConn, err := grpc.Dial(fmt.Sprintf("%s:%s", host, port),grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}

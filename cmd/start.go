@@ -24,8 +24,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/p0mvn/perf-osmo/v2/query"
+	"github.com/p0mvn/perf-osmo/v2/perf"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // startCmd represents the start command
@@ -56,7 +57,24 @@ func init() {
 	// is called directly, e.g.:
 	// startCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	if err := query.Start(); err != nil {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("/etc/perf-osmo/")   // path to look for the config file in
+	viper.AddConfigPath("$HOME/.perf-osmo")  // call multiple times to add many search paths
+	viper.AddConfigPath(".")
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil { // Handle errors reading the config file
+		panic(fmt.Errorf("fatal error config file: %w", err))
+	}
+
+	host := viper.GetString("perf.host")
+	port := viper.GetString("perf.port")
+	numConnections := viper.GetInt("perf.numConnections")
+	numCallsPerConnection := viper.GetInt("perf.numCallsPerConnection")
+
+	manager := perf.NewManager(host, port, numConnections, numCallsPerConnection)
+
+	if err := manager.Start(); err != nil {
 		panic(err)
 	}
 }
