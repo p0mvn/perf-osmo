@@ -2,6 +2,7 @@ package epochs
 
 import (
 	"context"
+	"math/rand"
 
 	"github.com/p0mvn/perf-osmo/v2/perf/module"
 	"google.golang.org/grpc"
@@ -22,6 +23,7 @@ func (em *EpochsModule) RegisterCalls() {
 	em.calls = append(em.calls, CurrEpochRequest)
 }
 
-func (*EpochsModule) CallRandom() error {
-	return nil
+func (em *EpochsModule) CallRandom(grpcConn *grpc.ClientConn, ctx context.Context, header *metadata.MD) (interface{}, error) {
+	randN := rand.Intn(len(em.calls))
+	return em.calls[randN](grpcConn, ctx, header)
 }
