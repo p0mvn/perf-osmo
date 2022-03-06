@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
 	epochs "github.com/osmosis-labs/osmosis/v7/x/epochs/types"
 	lockup "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
@@ -15,37 +16,39 @@ import (
 
 func Start() error {
 
-	// // Create a connection to the gRPC server.
-	// grpcTendermintConn, err := grpc.Dial("104.248.92.191:9090",grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// Create a connection to the gRPC server.
+	grpcTendermintConn, err := grpc.Dial("104.248.92.191:9090",grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	defer grpcTendermintConn.Close()
+	
+
+	reply := &tmservice.GetNodeInfoResponse{}
+	if err := grpcTendermintConn.Invoke(context.Background(), "/cosmos.base.tendermint.v1beta1.Service/GetNodeInfo", nil, reply, grpc.EmptyCallOption{}); err != nil {
+		return err
+	}
+	fmt.Println(reply)
+
+    // // Create a connection to the gRPC server.
+    // grpcConn, err := grpc.Dial("104.248.92.191:9090",grpc.WithTransportCredentials(insecure.NewCredentials()))
 	// if err != nil {
 	// 	return err
 	// }
-	// defer grpcTendermintConn.Close()
-	
-	// reply := rpc.NodeInfoResponse{}
-	// if err := grpcTendermintConn.Invoke(context.Background(), "/node_info", reply, nil); err != nil {
+    // defer grpcConn.Close()
+
+	// epochsResp, _, err := makeRequest(grpcConn, 3335437, currEpochRequest)
+	// if err != nil {
 	// 	return err
 	// }
+	// fmt.Println(epochsResp)
 
-    // Create a connection to the gRPC server.
-    grpcConn, err := grpc.Dial("104.248.92.191:9090",grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return err
-	}
-    defer grpcConn.Close()
-
-	epochsResp, _, err := makeRequest(grpcConn, 3335437, currEpochRequest)
-	if err != nil {
-		return err
-	}
-	fmt.Println(epochsResp)
-
-	lockupResp, _, err := makeRequest(grpcConn, 3335437, getLockupModuleBalance)
-	if err != nil {
-		return err
-	}
-	fmt.Println(lockupResp)
-	fmt.Println(err)
+	// lockupResp, _, err := makeRequest(grpcConn, 3335437, getLockupModuleBalance)
+	// if err != nil {
+	// 	return err
+	// }
+	// fmt.Println(lockupResp)
+	// fmt.Println(err)
 
     return nil
 }
