@@ -1,13 +1,18 @@
 package perf
 
 import (
+	"context"
 	"fmt"
+	"math/rand"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/p0mvn/perf-osmo/v2/perf/module"
 	"github.com/p0mvn/perf-osmo/v2/perf/node"
 	"github.com/p0mvn/perf-osmo/v2/x/epochs"
 	"github.com/p0mvn/perf-osmo/v2/x/lockup"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type Manager struct {
@@ -30,6 +35,8 @@ type Manager struct {
 	heightsToCover int
 }
 
+var _ module.PerfModule                 = (*Manager)(nil)
+
 func NewManager(host, port string, numConnections, numCallsPerConnection, heightsToCover int) *Manager {
 	manager := &Manager{
 		modules: []module.PerfModule{
@@ -42,11 +49,20 @@ func NewManager(host, port string, numConnections, numCallsPerConnection, height
 		numCallsPerConnection: numCallsPerConnection,
 	}
 
-	for _, module := range manager.modules {
-		module.RegisterCalls()
-	}
+	manager.RegisterCalls()
 
 	return manager
+}
+
+func (m *Manager) RegisterCalls() {
+	for _, module := range m.modules {
+		module.RegisterCalls()
+	}
+}
+
+func (m *Manager) CallRandom(grpcConn *grpc.ClientConn, ctx context.Context, header *metadata.MD) (interface{}, error) {
+	randN := rand.Intn(len(m.modules))
+	return m.modules[randN].CallRandom(grpcConn, ctx, header)
 }
 
 func (m *Manager) Start() error {
@@ -55,25 +71,14 @@ func (m *Manager) Start() error {
 		return err
 	}
 
-	conn, err := node.NewConnection(m.host, m.port)
-	if err != nil {
-		return err
+	wg := &sync.WaitGroup{}
+
+	for i :=0; i < m.numConnections; i++ {
+		wg.Add(1)
+		go m.startConnection(wg)
 	}
 
-	defer conn.Close()
-
-	epochsResp, _, err := conn.InvokeClient(3335437, epochs.CurrEpochRequest)
-	if err != nil {
-		return err
-	}
-	fmt.Println(epochsResp)
-
-	lockupResp, _, err := conn.InvokeClient(3335437, lockup.GetLockupModuleBalance)
-	if err != nil {
-		return err
-	}
-	fmt.Println(lockupResp)
-	fmt.Println(err)
+	wg.Wait()
 
     return nil
 }
@@ -90,4 +95,24 @@ func (m *Manager) getLatestHeight() (int64, error) {
 		return 0, err
 	}
 	return reply.Block.Header.Height, nil
+}
+
+func (m *Manager) startConnection(wg *sync.WaitGroup) error {
+	conn, err := node.NewConnection(m.host, m.port)
+	if err != nil {
+		return err
+	}
+	defer func ()  {
+		conn.Close()
+		wg.Done()
+	}()
+
+	for i := 0; i < m.numCallsPerConnection; i++ {
+		resp, _, err := conn.InvokeClient(3335437, m.CallRandom)
+		if err != nil {
+			return err
+		}
+		fmt.Println(resp)
+	}
+	return nil
 }
