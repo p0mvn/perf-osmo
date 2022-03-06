@@ -23,4 +23,4 @@ perf:
 
 - `go install`
 
-- `perf-osmos start`
+- `perf-osmo start`
