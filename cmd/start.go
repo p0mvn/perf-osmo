@@ -24,6 +24,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/p0mvn/perf-osmo/v2/query"
 	"github.com/spf13/cobra"
 )
 
@@ -54,4 +55,8 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// startCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	if err := query.Start(); err != nil {
+		panic(err)
+	}
 }
