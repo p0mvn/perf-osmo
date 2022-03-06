@@ -25,9 +25,12 @@ type Manager struct {
 
 	// Number of calls to make per connection
 	numCallsPerConnection int
+	
+	// Number of heights below latest to query
+	heightsToCover int
 }
 
-func NewManager(host, port string, numConnections, numCallsPerConnection int) *Manager {
+func NewManager(host, port string, numConnections, numCallsPerConnection, heightsToCover int) *Manager {
 	manager := &Manager{
 		modules: []module.PerfModule{
 			epochs.NewPerfModule(),
@@ -47,18 +50,17 @@ func NewManager(host, port string, numConnections, numCallsPerConnection int) *M
 }
 
 func (m *Manager) Start() error {
+	_, err := m.getLatestHeight(); 
+	if err != nil {
+		return err
+	}
+
 	conn, err := node.NewConnection(m.host, m.port)
 	if err != nil {
 		return err
 	}
 
 	defer conn.Close()
-
-	reply := &tmservice.GetNodeInfoResponse{}
-	if err := conn.Invoke("/cosmos.base.tendermint.v1beta1.Service/GetNodeInfo", reply); err != nil {
-		return err
-	}
-	fmt.Println(reply)
 
 	epochsResp, _, err := conn.InvokeClient(3335437, epochs.CurrEpochRequest)
 	if err != nil {
@@ -74,4 +76,18 @@ func (m *Manager) Start() error {
 	fmt.Println(err)
 
     return nil
+}
+
+func (m *Manager) getLatestHeight() (int64, error) {
+	conn, err := node.NewConnection(m.host, m.port)
+	if err != nil {
+		return 0, err
+	}
+	defer conn.Close()
+
+	reply := &tmservice.GetLatestBlockResponse{}
+	if err := conn.Invoke("/cosmos.base.tendermint.v1beta1.Service/GetLatestBlock", reply); err != nil {
+		return 0, err
+	}
+	return reply.Block.Header.Height, nil
 }

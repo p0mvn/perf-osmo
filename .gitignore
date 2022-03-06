@@ -1,2 +1,3 @@
 vendor
 perf-osmo
+perf_test.go

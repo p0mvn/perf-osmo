@@ -71,8 +71,9 @@ func init() {
 	port := viper.GetString("perf.port")
 	numConnections := viper.GetInt("perf.numConnections")
 	numCallsPerConnection := viper.GetInt("perf.numCallsPerConnection")
+	heightsToCover := viper.GetInt("perf.heightsToCover")
 
-	manager := perf.NewManager(host, port, numConnections, numCallsPerConnection)
+	manager := perf.NewManager(host, port, numConnections, numCallsPerConnection, heightsToCover)
 
 	if err := manager.Start(); err != nil {
 		panic(err)
