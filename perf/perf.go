@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/p0mvn/perf-osmo/v2/perf/module"
@@ -66,6 +67,7 @@ func (m *Manager) CallRandom(grpcConn *grpc.ClientConn, ctx context.Context, hea
 }
 
 func (m *Manager) Start() error {
+	rand.Seed(time.Now().UnixNano())
 	_, err := m.getLatestHeight(); 
 	if err != nil {
 		return err
