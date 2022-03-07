@@ -15,8 +15,8 @@ To use:
 perf:
   host: <node ip>
   port: 9090
-  numConnections: 1
-  numCallsPerConnection: 1
+  numConnections: 100
+  numCallsPerConnection: 10000
   heightsToCover: 1000
 
 ```

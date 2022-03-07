@@ -48,6 +48,7 @@ func NewManager(host, port string, numConnections, numCallsPerConnection, height
 		port: port,
 		numConnections: numConnections,
 		numCallsPerConnection: numCallsPerConnection,
+		heightsToCover: heightsToCover,
 	}
 
 	manager.RegisterCalls()
@@ -68,11 +69,6 @@ func (m *Manager) CallRandom(grpcConn *grpc.ClientConn, ctx context.Context, hea
 
 func (m *Manager) Start() error {
 	rand.Seed(time.Now().UnixNano())
-	_, err := m.getLatestHeight(); 
-	if err != nil {
-		return err
-	}
-
 	wg := &sync.WaitGroup{}
 
 	for i :=0; i < m.numConnections; i++ {
@@ -110,11 +106,25 @@ func (m *Manager) startConnection(wg *sync.WaitGroup) error {
 	}()
 
 	for i := 0; i < m.numCallsPerConnection; i++ {
-		resp, _, err := conn.InvokeClient(3335437, m.CallRandom)
+		requestHeight, err := m.getLatestHeight()
 		if err != nil {
 			return err
 		}
-		fmt.Println(resp)
+
+		heightRand := rand.Intn(100)
+		latestHeightChancePercent := 15
+		if heightRand > latestHeightChancePercent {
+			requestHeight = requestHeight - int64(rand.Intn(m.heightsToCover))
+		}
+
+		_, respHeight, err := conn.InvokeClient(int(requestHeight), m.CallRandom)
+		if err != nil {
+			return err
+		}
+
+		if int64(respHeight) != requestHeight {
+			return fmt.Errorf("requested height %d, got response height %d", requestHeight, respHeight)
+		}
 	}
 	return nil
 }
